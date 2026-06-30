@@ -1,0 +1,27 @@
+---
+# App deploy karne ke tasks
+
+- name: Install Git
+  apt:
+    name: git
+    state: present
+
+- name: Clone RaviShop AI repo
+  git:
+    repo: https://github.com/Ravisahu7079/ravishop-ai-app.git
+    dest: /home/ubuntu/ravishop-ai-app
+    version: main
+    force: yes
+
+- name: Copy .env file
+  template:
+    src: env.j2
+    dest: /home/ubuntu/ravishop-ai-app/.env
+
+- name: Run Docker Compose
+  shell: |
+    cd /home/ubuntu/ravishop-ai-app
+    docker-compose down
+    docker-compose up -d --build
+  args:
+    executable: /bin/bash

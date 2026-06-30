@@ -223,3 +223,6 @@ __marimo__/
 *.tfstate.backup
 .terraform/
 .terraform.lock.hcl
+
+# Ansible secrets - phase 10 main vault encrypt karenge
+ansible/vars/secrets.yml
