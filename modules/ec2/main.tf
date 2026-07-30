@@ -1,10 +1,18 @@
 # modules/ec2/main.tf
 
-# Security Group — Kaun access kar sakta hai
+# Security Group
 resource "aws_security_group" "ec2" {
   name        = "${var.project_name}-ec2-sg"
   description = "EC2 Security Group"
   vpc_id      = var.vpc_id
+
+  # SSH access
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   # HTTP access
   ingress {
@@ -30,7 +38,31 @@ resource "aws_security_group" "ec2" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Outbound — sab allow
+  # Prometheus
+  ingress {
+    from_port   = 9090
+    to_port     = 9090
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Grafana
+  ingress {
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Node Exporter
+  ingress {
+    from_port   = 9100
+    to_port     = 9100
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Outbound
   egress {
     from_port   = 0
     to_port     = 0
@@ -46,18 +78,33 @@ resource "aws_security_group" "ec2" {
 
 # EC2 Instance
 resource "aws_instance" "app" {
-  ami                    = "ami-0f58b397bc5c1f2e8" # Ubuntu 22.04 ap-south-1
+  ami                    = "ami-0f58b397bc5c1f2e8"
   instance_type          = var.instance_type
   subnet_id              = var.public_subnet_id
   vpc_security_group_ids = [aws_security_group.ec2.id]
   iam_instance_profile   = var.iam_instance_profile
+  key_name               = "ravishop-key"
 
   user_data = <<-EOF
     #!/bin/bash
     apt-get update -y
-    apt-get install -y python3 python3-pip docker.io
+    apt-get install -y docker.io docker-compose git curl
+
+    # Docker start
     systemctl start docker
     systemctl enable docker
+    usermod -aG docker ubuntu
+
+    # CloudWatch Agent install
+    cd /tmp
+    curl -O https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+    dpkg -i amazon-cloudwatch-agent.deb
+
+    # Node Exporter install
+    curl -LO https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz
+    tar xvf node_exporter-1.7.0.linux-amd64.tar.gz
+    cp node_exporter-1.7.0.linux-amd64/node_exporter /usr/local/bin/
+    nohup /usr/local/bin/node_exporter &
   EOF
 
   tags = {
