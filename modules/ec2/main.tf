@@ -131,10 +131,6 @@ resource "aws_instance" "app" {
     cd /tmp
     curl -O https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
     dpkg -i amazon-cloudwatch-agent.deb
-
-    # k3s install
-    curl -sfL https://get.k3s.io | sh -
-    chmod 644 /etc/rancher/k3s/k3s.yaml
   EOF
 
   tags = {
